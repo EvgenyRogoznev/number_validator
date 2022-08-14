@@ -20,7 +20,7 @@ public class ResponseDto {
     public static final String  notFullStatusInfo = "Mobile is not a full number";
     public static final String notNumberStatusInfo = "It is not a phone number";
     public static final String  notUSStatusInfo = "Mobile is not US number";
-    public static final String  noCountryCodeStatusInfo = "Mobile does not have a country code ";
+    public static final String  noCountryCodeStatusInfo = "Mobile does not have a country code";
     public ResponseDto(CheckNumberServiceInputDto number){
         mdn = number.getNumber();
         transactionId = number.getNumber()+ new Date().getTime();

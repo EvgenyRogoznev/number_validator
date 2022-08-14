@@ -28,13 +28,13 @@ public class CheckNumberController {
 
         if(xDate==null) {
             String json = g.toJson(new ErrorResponse("Date header not present","ERROR" ));
-            return ResponseEntity.status(401).body(json);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(json);
         } else if (xSignature==null) {
             String json = g.toJson(new ErrorResponse("Signature header not present","ERROR"));
-            return ResponseEntity.status(401).body(json);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(json);
         } else if(numbers.size()>10) {
             String json = g.toJson(new ErrorResponse("request exceeds maximum limit of numbers allowed max allowed 10"));
-            return ResponseEntity.status(400).body(json);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(json);
         }
 
         List<ResponseDto> response = new ArrayList<>();

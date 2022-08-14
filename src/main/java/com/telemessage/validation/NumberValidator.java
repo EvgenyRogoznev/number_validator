@@ -14,7 +14,7 @@ public class NumberValidator {
         if (number.length() == 10 && number.charAt(0) == '1'){
             return Type.NotFull;
         }
-        else if (number.length()<10||number.length()>11){
+        else if (number.length()<10||number.length()>11||(number.length()==11&&number.charAt(0)!='1')){
             return Type.NotUS;
         }
         else if (number.length()==10){

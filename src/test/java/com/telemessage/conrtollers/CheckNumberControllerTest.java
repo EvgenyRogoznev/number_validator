@@ -4,29 +4,41 @@ import com.google.gson.Gson;
 import com.telemessage.controllers.CheckNumberController;
 import com.telemessage.dto.CheckNumberServiceInputDto;
 import com.telemessage.exception.ErrorResponse;
-import org.apache.tomcat.util.json.JSONParser;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import java.util.*;
 import java.util.stream.Stream;
 
 import static com.telemessage.utils.Headers.getValidXSignature;
 import static com.telemessage.utils.Headers.getXDate;
+import static com.telemessage.utils.NumberGenerator.getRandomPhone;
 
 
 public class CheckNumberControllerTest {
 
     private final CheckNumberController checkNumberController = new CheckNumberController();
-    Gson g = new Gson();
+    private static final Gson g = new Gson();
 
+    @ParameterizedTest
+    @ValueSource(ints = { 0, 2, 10 })
+    public void checkCorrectSizesRequest(int inputSize){
+
+        var response = checkNumberController.check(
+                getXDate(),
+                getValidXSignature (),
+                createRandomCheckNumberServiceInputBySize(inputSize) );
+        Assertions.assertEquals(response.getStatusCode(), HttpStatus.OK);
+    }
 
     @ParameterizedTest()
     @MethodSource("headersTestData")
-    public void checkXDateIsNull(String xDate, String xSignature, HttpStatus expectedHttpStatus, String expectedStatus,
-                                 String expectedStatusInfo ){
+    public void checkHeadersIsNull(String xDate, String xSignature, ResponseEntity expectedResponse){
 
         List <CheckNumberServiceInputDto> input = new ArrayList<>();
         CheckNumberServiceInputDto number = new CheckNumberServiceInputDto("10123456789");
@@ -34,26 +46,45 @@ public class CheckNumberControllerTest {
         var response = checkNumberController.check(
                 xDate,
                 xSignature,
-                input );
-        var body = response.getBody();
-        var gd = (ErrorResponse)body;
-
-
-
-        Assertions.assertAll(
-                () -> Assertions.assertEquals(response.getStatusCode(), expectedHttpStatus),
-                () -> Assertions.assertEquals(body.getStatus(), expectedStatus),
-                () -> Assertions.assertEquals(body.getStatusInfo(), expectedStatusInfo)
-        );
+                createRandomCheckNumberServiceInputBySize(1) );
+      Assertions.assertEquals(response, expectedResponse);
     }
 
+    @Test
+    public void checkInvalidSize(){
+        List <CheckNumberServiceInputDto> input = new ArrayList<>();
+        for (int i=0; i<11; i++){
+            input.add(new CheckNumberServiceInputDto(getRandomPhone(11)));
+        }
 
+        var response = checkNumberController.check(
+                getXDate(),
+                getValidXSignature (),
+                input );
+
+        String toMachSizeBody = g.toJson(new ErrorResponse("request exceeds maximum limit of numbers allowed max allowed 10"));
+        ResponseEntity expectedResponse = ResponseEntity.status(HttpStatus.BAD_REQUEST).body(toMachSizeBody);
+
+        Assertions.assertEquals(response, expectedResponse);
+    }
+    private List<CheckNumberServiceInputDto> createRandomCheckNumberServiceInputBySize(int inputSize) {
+        List <CheckNumberServiceInputDto> input = new ArrayList<>();
+        for (int i=0; i<inputSize; i++){
+            input.add(new CheckNumberServiceInputDto(getRandomPhone(11)));
+        }
+        return input;
+    }
     private static Stream<Arguments> headersTestData() {
+
+        String jsonNoDateBody = g.toJson(new ErrorResponse("Date header not present","ERROR" ));
+        ResponseEntity responseNoDate = ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(jsonNoDateBody);
+        String jsonNoSignatureBody = g.toJson(new ErrorResponse("Signature header not present","ERROR" ));
+        ResponseEntity responseNoSignatureBody = ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(jsonNoSignatureBody);
+
         return Stream.of(
-                Arguments.of(getXDate(), getValidXSignature (), HttpStatus.OK, null, "Success Mobile is a full US number" ),
-                Arguments.of(null, getValidXSignature (),  HttpStatus.UNAUTHORIZED, "ERROR", "Date header not present" ),
-                Arguments.of(getXDate(), null,  HttpStatus.UNAUTHORIZED, "ERROR", "Signature header not present" ),
-                Arguments.of(null, null, HttpStatus.UNAUTHORIZED, "ERROR", "Date header not present" )
+                Arguments.of(null, getValidXSignature (),  responseNoDate),
+                Arguments.of(getXDate(), null,  responseNoSignatureBody),
+                Arguments.of(null, null, responseNoDate)
         );
     }
 }

@@ -14,9 +14,7 @@ public class Headers {
         return dateFormat.format(Calendar.getInstance().getTime());
     }
     public static String getValidXSignature () {
-
         String xDate = getXDate();
-        System.out.println(xDate);
         StringBuilder s = new StringBuilder().append("\"TEST\" , \"POST\", \"").append(xDate).append("\"");
         return DigestUtils.sha512Hex(String.format(s.toString()));
     }
